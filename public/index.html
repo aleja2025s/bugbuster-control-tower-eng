@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BugBuster Control Tower Live</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        :root {
+            --primary: #820AD1;
+            --primary-dark: #5a0d8a;
+            --surface-1: #ffffff;
+            --surface-2: #f8f9fa;
+            --surface-3: #e9ecef;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --border: #dee2e6;
+            --success: #198754;
+            --danger: #dc3545;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--surface-2);
+            color: var(--text-primary);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .config-banner {
+            background: #fffbea;
+            border-left: 4px solid #ffc107;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+
+        .config-banner.show {
+            display: block;
+        }
+
+        .config-banner.error {
+            background: #f8d7da;
+            border-left-color: var(--danger);
+        }
+
+        .config-form {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        .config-form input {
+            padding: 0.6rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.95rem;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .tab-button {
+            padding: 1rem 1.5rem;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button:hover {
+            color: var(--primary);
+        }
+
+        .tab-button.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--surface-1);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: var(--surface-1);
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-card h3 {
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-group label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 0.6rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.95rem;
+            background: var(--surface-1);
+            color: var(--text-primary);
+        }
+
+        .filter-group input:focus,
+        .filter-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(130, 10, 209, 0.1);
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: var(--surface-3);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--surface-1);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        table thead {
+            background: var(--surface-2);
+            border-bottom: 2px solid var(--border);
+        }
+
+        table th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.95rem;
+        }
+
+        table tbody tr:hover {
+            background: var(--surface-2);
+        }
+
+        table a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        table a:hover {
+            text-decoration: underline;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--danger);
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--success);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .placeholder {
+            background: var(--surface-1);
+            padding: 3rem;
+            border-radius: 8px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-closed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-open {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            .tab-button {
+                padding: 0.8rem 1rem;
+                font-size: 0.9rem;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+
+            table th, table td {
+                padding: 0.7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🐛 BugBuster Control Tower Live</h1>
+        <p>Dashboard en tiempo real de casos y métricas de Databricks</p>
+    </div>
+
+    <div class="container">
+        <div id="config-banner" class="config-banner">
+            <p><strong>⚙️ Configura tus credenciales de Databricks:</strong></p>
+            <div class="config-form">
+                <input type="text" id="db-host" placeholder="Host (ej: abc123.cloud.databricks.com)" />
+                <input type="password" id="db-token" placeholder="Token de Databricks" />
+                <button class="btn btn-primary" onclick="saveDatabricksConfig()">Guardar</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="switchTab('panorama')">📊 Panorama</button>
+            <button class="tab-button" onclick="switchTab('labels')">🏷️ Labels</button>
+            <button class="tab-button" onclick="switchTab('explore')">🔍 Explorar</button>
+            <button class="tab-button" onclick="switchTab('trends')">📈 Tendencias</button>
+        </div>
+
+        <!-- TAB 1: PANORAMA -->
+        <div id="panorama" class="tab-content active">
+            <div id="panorama-alerts"></div>
+            <div class="metrics-grid" id="metrics-container">
+                <div class="loading">Cargando métricas...</div>
+            </div>
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>Estado de Casos</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-pie"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>Casos por Funnel</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-funnel"></canvas>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="loadPanorama()">🔄 Actualizar</button>
+        </div>
+
+        <!-- TAB 2: LABELS -->
+        <div id="labels" class="tab-content">
+            <div id="labels-alerts"></div>
+            <div class="filters">
+                <div class="filter-group" style="flex: 1; min-width: 200px;">
+                    <label for="label-search">Buscar label:</label>
+                    <input type="text" id="label-search" placeholder="Escribe para filtrar...">
+                </div>
+                <button class="btn btn-primary" onclick="loadLabels()">🔄 Actualizar</button>
+            </div>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Label</th>
+                            <th>Casos</th>
+                        </tr>
+                    </thead>
+                    <tbody id="labels-table">
+                        <tr><td colspan="2" class="loading">Cargando labels...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB 3: EXPLORAR -->
+        <div id="explore" class="tab-content">
+            <div id="explore-alerts"></div>
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="explore-label">Label:</label>
+                    <input type="text" id="explore-label" placeholder="ej: urgent">
+                </div>
+                <div class="filter-group">
+                    <label for="explore-customer">Customer ID:</label>
+                    <input type="text" id="explore-customer" placeholder="ej: CUST123">
+                </div>
+                <div class="filter-group">
+                    <label for="explore-limit">Límite:</label>
+                    <select id="explore-limit">
+                        <option value="25">25 casos</option>
+                        <option value="50" selected>50 casos</option>
+                        <option value="100">100 casos</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="loadExplore()">🔍 Buscar</button>
+            </div>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Jira ID</th>
+                            <th>Customer</th>
+                            <th>Prospect</th>
+                            <th>Asunto</th>
+                            <th>Estado</th>
+                            <th>Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody id="explore-table">
+                        <tr><td colspan="6" class="loading">Ingresa filtros y busca...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB 4: TENDENCIAS -->
+        <div id="trends" class="tab-content">
+            <div class="placeholder">📈 Próximamente: Gráficos de evolución temporal</div>
+        </div>
+    </div>
+
+    <script>
+        let labelsData = [];
+        let charts = {};
+
+        // Verificar configuración al cargar
+        window.addEventListener('load', async () => {
+            await checkConfiguration();
+        });
+
+        async function checkConfiguration() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+
+                if (!config.configured) {
+                    document.getElementById('config-banner').classList.add('show');
+                }
+            } catch (error) {
+                console.error('Error verificando configuración:', error);
+                showConfigError('No se pudo verificar la configuración');
+            }
+        }
+
+        async function saveDatabricksConfig() {
+            const host = document.getElementById('db-host').value.trim();
+            const token = document.getElementById('db-token').value.trim();
+
+            if (!host || !token) {
+                showConfigError('Por favor completa Host y Token');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/configure', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ host, token })
+                });
+
+                if (response.ok) {
+                    document.getElementById('config-banner').classList.remove('show', 'error');
+                    document.getElementById('db-host').value = '';
+                    document.getElementById('db-token').value = '';
+                    loadPanorama();
+                } else {
+                    const error = await response.json();
+                    showConfigError(error.error);
+                }
+            } catch (error) {
+                showConfigError('Error al guardar configuración: ' + error.message);
+            }
+        }
+
+        function showConfigError(message) {
+            const banner = document.getElementById('config-banner');
+            banner.classList.add('show', 'error');
+            banner.innerHTML = `<p><strong>❌ Error:</strong> ${message}</p>`;
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            if (tabName === 'panorama') loadPanorama();
+            if (tabName === 'labels') loadLabels();
+        }
+
+        async function queryDatabricks(query) {
+            try {
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error);
+                }
+
+                const result = await response.json();
+                return result.data;
+            } catch (error) {
+                console.error('Error en query:', error);
+                throw error;
+            }
+        }
+
+        async function loadPanorama() {
+            const container = document.getElementById('metrics-container');
+            const alerts = document.getElementById('panorama-alerts');
+            alerts.innerHTML = '';
+
+            try {
+                container.innerHTML = '<div class="loading">Cargando métricas...</div>';
+
+                const query = `
+                    SELECT
+                      COUNT(*) as total,
+                      SUM(CASE WHEN upper(estado) IN ('HECHO', 'CERRADO') OR resuelto = true THEN 1 ELSE 0 END) as resueltos,
+                      ROUND(100.0 * SUM(CASE WHEN upper(estado) IN ('HECHO', 'CERRADO') OR resuelto = true THEN 1 ELSE 0 END) / COUNT(*), 1) as pct_resuelto,
+                      COUNT(DISTINCT customer_id) as clientes_unicos
+                    FROM usr.\`co-cx-ops-analytics\`.bugbustereng_casos
+                `;
+
+                const data = await queryDatabricks(query);
+                const row = data[0];
+
+                const abiertos = row.total - row.resueltos;
+
+                container.innerHTML = `
+                    <div class="metric-card">
+                        <div class="metric-label">Total de Casos</div>
+                        <div class="metric-value">${row.total}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Resueltos</div>
+                        <div class="metric-value" style="color: var(--success);">${row.resueltos}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Abiertos</div>
+                        <div class="metric-value" style="color: var(--danger);">${abiertos}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">% Resuelto</div>
+                        <div class="metric-value">${row.pct_resuelto}%</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Clientes Únicos</div>
+                        <div class="metric-value">${row.clientes_unicos}</div>
+                    </div>
+                `;
+
+                await loadPanoramaCharts(row.resueltos, abiertos);
+                alerts.innerHTML = `<div class="success">✅ Datos cargados correctamente</div>`;
+
+            } catch (error) {
+                alerts.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                container.innerHTML = '';
+            }
+        }
+
+        async function loadPanoramaCharts(resueltos, abiertos) {
+            try {
+                const ctxPie = document.getElementById('chart-pie');
+                if (charts['pie']) charts['pie'].destroy();
+                charts['pie'] = new Chart(ctxPie, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Resueltos', 'Abiertos'],
+                        datasets: [{
+                            data: [resueltos, abiertos],
+                            backgroundColor: ['#d4edda', '#fff3cd'],
+                            borderColor: ['#155724', '#856404'],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+
+                const funnelQuery = `
+                    SELECT
+                      CASE
+                        WHEN funnel LIKE '%NuStart%' THEN 'NuStart'
+                        WHEN funnel LIKE '%NuJourney%' THEN 'NuJourney'
+                        WHEN funnel LIKE '%NuActivation%' THEN 'NuActivation'
+                        ELSE 'Otros'
+                      END as funnel_name,
+                      COUNT(*) as count
+                    FROM usr.\`co-cx-ops-analytics\`.bugbustereng_casos
+                    GROUP BY 1
+                    ORDER BY 2 DESC
+                `;
+
+                const funnelData = await queryDatabricks(funnelQuery);
+
+                const ctxFunnel = document.getElementById('chart-funnel');
+                if (charts['funnel']) charts['funnel'].destroy();
+                charts['funnel'] = new Chart(ctxFunnel, {
+                    type: 'bar',
+                    data: {
+                        labels: funnelData.map(f => f.funnel_name),
+                        datasets: [{
+                            label: 'Casos',
+                            data: funnelData.map(f => f.count),
+                            backgroundColor: '#820AD1',
+                            borderColor: '#5a0d8a',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { x: { beginAtZero: true } }
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error cargando gráficos:', error);
+            }
+        }
+
+        async function loadLabels() {
+            const table = document.getElementById('labels-table');
+            const alerts = document.getElementById('labels-alerts');
+            alerts.innerHTML = '';
+
+            try {
+                table.innerHTML = '<tr><td colspan="2" class="loading">Cargando labels...</td></tr>';
+
+                const query = `
+                    SELECT
+                      EXPLODE(split(replace(etiquetas, ' ', ''), ',')) as label,
+                      COUNT(*) as count
+                    FROM usr.\`co-cx-ops-analytics\`.bugbustereng_casos
+                    WHERE etiquetas != ''
+                    GROUP BY 1
+                    ORDER BY 2 DESC
+                    LIMIT 50
+                `;
+
+                const data = await queryDatabricks(query);
+                labelsData = data;
+
+                renderLabelsTable(labelsData);
+                alerts.innerHTML = `<div class="success">✅ ${labelsData.length} labels cargados</div>`;
+
+            } catch (error) {
+                alerts.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                table.innerHTML = '';
+            }
+        }
+
+        function renderLabelsTable(data) {
+            const table = document.getElementById('labels-table');
+            const searchTerm = document.getElementById('label-search').value.toLowerCase();
+
+            const filtered = data.filter(d =>
+                d.label.toLowerCase().includes(searchTerm)
+            );
+
+            if (filtered.length === 0) {
+                table.innerHTML = '<tr><td colspan="2" class="empty-state">No se encontraron labels</td></tr>';
+                return;
+            }
+
+            table.innerHTML = filtered.map(row => `
+                <tr>
+                    <td>${row.label}</td>
+                    <td><strong>${row.count}</strong></td>
+                </tr>
+            `).join('');
+        }
+
+        document.getElementById('label-search')?.addEventListener('input', () => {
+            renderLabelsTable(labelsData);
+        });
+
+        async function loadExplore() {
+            const table = document.getElementById('explore-table');
+            const alerts = document.getElementById('explore-alerts');
+            alerts.innerHTML = '';
+
+            const label = document.getElementById('explore-label').value.trim();
+            const customer = document.getElementById('explore-customer').value.trim();
+            const limit = document.getElementById('explore-limit').value;
+
+            try {
+                table.innerHTML = '<tr><td colspan="6" class="loading">Buscando...</td></tr>';
+
+                let query = `
+                    SELECT
+                      jira_id, customer_id, prospect_id, asunto, estado, fecha_creacion
+                    FROM usr.\`co-cx-ops-analytics\`.bugbustereng_casos
+                    WHERE 1=1
+                `;
+
+                if (label) {
+                    const escapedLabel = label.replace(/'/g, "''");
+                    query += ` AND array_contains(split(replace(etiquetas, ' ', ''), ','), '${escapedLabel}')`;
+                }
+
+                if (customer) {
+                    const escapedCustomer = customer.replace(/'/g, "''");
+                    query += ` AND customer_id LIKE '%${escapedCustomer}%'`;
+                }
+
+                query += ` ORDER BY fecha_creacion DESC LIMIT ${limit}`;
+
+                const data = await queryDatabricks(query);
+
+                if (data.length === 0) {
+                    table.innerHTML = '<tr><td colspan="6" class="empty-state">No se encontraron casos</td></tr>';
+                    return;
+                }
+
+                table.innerHTML = data.map(row => {
+                    const isResolved = row.estado && (row.estado.toUpperCase() === 'HECHO' || row.estado.toUpperCase() === 'CERRADO');
+                    const statusClass = isResolved ? 'status-closed' : 'status-open';
+                    const statusText = isResolved ? '✓ Cerrado' : '⏳ Abierto';
+                    const fecha = row.fecha_creacion ? new Date(row.fecha_creacion).toLocaleDateString('es-CO') : 'N/A';
+
+                    return `
+                        <tr>
+                            <td><a href="https://nubank-col.atlassian.net/browse/${row.jira_id}" target="_blank">${row.jira_id}</a></td>
+                            <td>${row.customer_id || 'N/A'}</td>
+                            <td>${row.prospect_id || 'N/A'}</td>
+                            <td>${row.asunto || 'N/A'}</td>
+                            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                            <td>${fecha}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                alerts.innerHTML = `<div class="success">✅ ${data.length} casos encontrados</div>`;
+
+            } catch (error) {
+                alerts.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                table.innerHTML = '';
+            }
+        }
+    </script>
+</body>
+</html>
